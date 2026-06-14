@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../routes/app_routes.dart';
 import 'reports_controller.dart';
@@ -28,14 +29,14 @@ class ReportsView extends GetView<ReportsController> {
           },
           tooltip: 'Back to Dashboard',
         ),
-        title: FittedBox(
+        title: const FittedBox(
           fit: BoxFit.scaleDown,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.analytics_rounded, color: AppColors.primary),
-              const SizedBox(width: 8),
-              const Text('Reports & Analytics'),
+              Icon(Icons.analytics_rounded, color: AppColors.primary),
+              SizedBox(width: 8),
+              Text('Reports & Analytics'),
             ],
           ),
         ),
@@ -68,30 +69,30 @@ class ReportsView extends GetView<ReportsController> {
                       children: [
                         SizedBox(
                           width: cardWidth,
-                          child: _buildSummaryCard(
+                          child: Obx(() => _buildSummaryCard(
                             title: 'Gross Revenue',
                             value: '৳${controller.totalRevenue.toStringAsFixed(0)}',
                             gradient: AppColors.secondaryGradient,
                             icon: Icons.monetization_on_rounded,
-                          ),
+                          )),
                         ),
                         SizedBox(
                           width: cardWidth,
-                          child: _buildSummaryCard(
+                          child: Obx(() => _buildSummaryCard(
                             title: 'Discounts Given',
                             value: '৳${controller.totalDiscounts.toStringAsFixed(0)}',
                             gradient: AppColors.primaryGradient,
                             icon: Icons.percent_rounded,
-                          ),
+                          )),
                         ),
                         SizedBox(
                           width: double.infinity,
-                          child: _buildSummaryCard(
+                          child: Obx(() => _buildSummaryCard(
                             title: 'Completed Orders',
                             value: '${controller.completedOrdersCount}',
                             gradient: AppColors.tertiaryGradient,
                             icon: Icons.shopping_bag_rounded,
-                          ),
+                          )),
                         ),
                       ],
                     );
@@ -99,30 +100,30 @@ class ReportsView extends GetView<ReportsController> {
                   return Row(
                     children: [
                       Expanded(
-                        child: _buildSummaryCard(
+                        child: Obx(() => _buildSummaryCard(
                           title: 'Gross Revenue',
                           value: '৳${controller.totalRevenue.toStringAsFixed(0)}',
                           gradient: AppColors.secondaryGradient,
                           icon: Icons.monetization_on_rounded,
-                        ),
+                        )),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: _buildSummaryCard(
+                        child: Obx(() => _buildSummaryCard(
                           title: 'Discounts Given',
                           value: '৳${controller.totalDiscounts.toStringAsFixed(0)}',
                           gradient: AppColors.primaryGradient,
                           icon: Icons.percent_rounded,
-                        ),
+                        )),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: _buildSummaryCard(
+                        child: Obx(() => _buildSummaryCard(
                           title: 'Completed Orders',
                           value: '${controller.completedOrdersCount}',
                           gradient: AppColors.tertiaryGradient,
                           icon: Icons.shopping_bag_rounded,
-                        ),
+                        )),
                       ),
                     ],
                   );

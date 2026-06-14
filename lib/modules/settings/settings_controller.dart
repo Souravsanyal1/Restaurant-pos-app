@@ -13,11 +13,10 @@ class SettingsController extends GetxController {
   final vatController = TextEditingController();
   final serviceChargeController = TextEditingController();
 
-  // QR Settings fields
-  final showQrPayment = true.obs;
-  final qrGatewayController = TextEditingController();
-  final qrNumberController = TextEditingController();
-  final qrImageUrlController = TextEditingController();
+  // Shop Details fields
+  final shopAddressController = TextEditingController();
+  final shopPhoneController = TextEditingController();
+  final shopEmailController = TextEditingController();
 
   // Coupon fields
   final couponCodeController = TextEditingController();
@@ -29,6 +28,10 @@ class SettingsController extends GetxController {
   final selectedRoleToManage = AppStrings.roleSuperAdmin.obs;
   final roleEmailController = TextEditingController();
   final rolePasswordController = TextEditingController();
+
+  // Staff Management fields
+  final staffNameController = TextEditingController();
+  final isAddingWaiter = true.obs; // Toggle between Waiter and Chef
 
   final rolesList = [
     AppStrings.roleSuperAdmin,
@@ -42,16 +45,15 @@ class SettingsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // Load current DB service settings
+    // Load current db service settings
     nameController.text = dbService.restaurantName.value;
     vatController.text = (dbService.vatRate.value * 100).toStringAsFixed(0);
     serviceChargeController.text = dbService.serviceCharge.value.toStringAsFixed(0);
 
-    // QR Code Payment settings
-    showQrPayment.value = dbService.showQrPayment.value;
-    qrGatewayController.text = dbService.qrPaymentGateway.value;
-    qrNumberController.text = dbService.qrPaymentNumber.value;
-    qrImageUrlController.text = dbService.qrImageUrl.value;
+    // Shop details settings
+    shopAddressController.text = dbService.shopAddress.value;
+    shopPhoneController.text = dbService.shopPhone.value;
+    shopEmailController.text = dbService.shopEmail.value;
 
     // Load initial values for role credentials
     _loadRoleCredentials(selectedRoleToManage.value);
@@ -84,10 +86,9 @@ class SettingsController extends GetxController {
       name: name,
       vat: vatVal / 100.0,
       serviceFee: chargeVal,
-      showQr: showQrPayment.value,
-      qrGateway: qrGatewayController.text.trim(),
-      qrNumber: qrNumberController.text.trim(),
-      qrImage: qrImageUrlController.text.trim(),
+      address: shopAddressController.text.trim(),
+      phone: shopPhoneController.text.trim(),
+      email: shopEmailController.text.trim(),
     );
 
     Get.snackbar(
@@ -99,7 +100,7 @@ class SettingsController extends GetxController {
     );
   }
 
-  void saveRoleCredentials() {
+  void saveRoleCredentials() async {
     final role = selectedRoleToManage.value;
     final email = roleEmailController.text.trim();
     final password = rolePasswordController.text.trim();
@@ -109,7 +110,7 @@ class SettingsController extends GetxController {
       return;
     }
 
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    final emailRegex = RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$');
     if (!emailRegex.hasMatch(email)) {
       Get.snackbar('Error', 'Invalid email address format.');
       return;
@@ -124,21 +125,35 @@ class SettingsController extends GetxController {
       return;
     }
 
-    dbService.updateCredentials(role, email, password);
+    // Show loading overlay
+    Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
-    // Update active user session email if their own role was changed
-    final authService = Get.find<AuthService>();
-    if (authService.currentUserRole.value == role) {
-      authService.currentUserEmail.value = email;
+    try {
+      final authService = Get.find<AuthService>();
+      await authService.registerOrUpdateStaff(email, password, role);
+
+      // Update local storage too for UI consistency if needed
+      dbService.updateCredentials(role, email, password);
+
+      Get.back(); // Dismiss loading
+      Get.snackbar(
+        'Success',
+        'Firebase account for "$role" synchronized successfully.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFF0D9488).withValues(alpha: 0.1),
+        colorText: const Color(0xFF0D9488),
+      );
+    } catch (e) {
+      Get.back(); // Dismiss loading
+      Get.snackbar(
+        'Sync Failed',
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withValues(alpha: 0.1),
+        colorText: Colors.red,
+        duration: const Duration(seconds: 5),
+      );
     }
-
-    Get.snackbar(
-      'Success',
-      'Credentials for "$role" updated successfully.',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: const Color(0xFF0D9488).withValues(alpha: 0.1),
-      colorText: const Color(0xFF0D9488),
-    );
   }
 
   void createCoupon() {
@@ -187,12 +202,49 @@ class SettingsController extends GetxController {
     );
   }
 
-  void toggleCoupon(String code) {
-    dbService.toggleCouponStatus(code);
+  void toggleCoupon(String code) async {
+    await dbService.toggleCouponStatus(code);
   }
 
   void deleteCoupon(String code) {
     dbService.deleteCoupon(code);
+  }
+
+  void migrateData() async {
+    Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+    try {
+      await dbService.migrateMockDataToFirebase();
+      Get.back();
+      Get.snackbar('Success', 'Menu migrated to Firebase successfully!');
+    } catch (e) {
+      Get.back();
+      Get.snackbar('Error', e.toString());
+    }
+  }
+
+  void addStaff() async {
+    final name = staffNameController.text.trim();
+    if (name.isEmpty) {
+      Get.snackbar('Error', 'Name cannot be empty.');
+      return;
+    }
+
+    if (isAddingWaiter.value) {
+      await dbService.addWaiter(name);
+    } else {
+      await dbService.addChef(name);
+    }
+
+    staffNameController.clear();
+    Get.snackbar('Success', '$name added successfully!');
+  }
+
+  void removeWaiter(String name) async {
+    await dbService.deleteWaiter(name);
+  }
+
+  void removeChef(String name) async {
+    await dbService.deleteChef(name);
   }
 
   @override
@@ -200,14 +252,15 @@ class SettingsController extends GetxController {
     nameController.dispose();
     vatController.dispose();
     serviceChargeController.dispose();
-    qrGatewayController.dispose();
-    qrNumberController.dispose();
-    qrImageUrlController.dispose();
+    shopAddressController.dispose();
+    shopPhoneController.dispose();
+    shopEmailController.dispose();
     couponCodeController.dispose();
     couponValueController.dispose();
     couponMinOrderController.dispose();
     roleEmailController.dispose();
     rolePasswordController.dispose();
+    staffNameController.dispose();
     super.onClose();
   }
 }

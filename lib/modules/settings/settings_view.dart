@@ -57,7 +57,19 @@ class SettingsView extends GetView<SettingsController> {
               Obx(() {
                 final role = Get.find<AuthService>().currentUserRole.value;
                 if (role == AppStrings.roleOwner || role == AppStrings.roleSuperAdmin) {
-                  return _buildOwnerExecutiveHub(context, isDark);
+                  return Column(
+                    children: [
+                      _buildOwnerExecutiveHub(context, isDark),
+                      const SizedBox(height: 16),
+                      CustomButton(
+                        text: 'Migrate Local Menu to Firebase (ডাটা সিঙ্ক করুন)',
+                        icon: Icons.cloud_upload_rounded,
+                        width: double.infinity,
+                        onPressed: () => controller.migrateData(),
+                      ),
+                      const SizedBox(height: 32),
+                    ],
+                  );
                 }
                 return const SizedBox.shrink();
               }),
@@ -101,8 +113,33 @@ class SettingsView extends GetView<SettingsController> {
               ),
               const SizedBox(height: 14),
               _buildCouponList(context, isDark),
+
+              const SizedBox(height: 32),
+
+              // Section 4: Staff Management (Waiters & Chefs)
+              Obx(() {
+                final role = Get.find<AuthService>().currentUserRole.value;
+                if (role == AppStrings.roleSuperAdmin || role == AppStrings.roleOwner || role == AppStrings.roleManager) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Staff Management (স্টাফ ম্যানেজমেন্ট)',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.3,
+                          color: isDark ? Colors.white : AppColors.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      _buildStaffManagementCard(context, isDark),
+                    ],
+                  );
+                }
+                return const SizedBox.shrink();
+              }),
               
-              // Section 4: User Accounts & Passwords (Super Admin / Restaurant Owner)
+              // Section 5: User Accounts & Passwords (Super Admin / Restaurant Owner)
               Obx(() {
                 final role = Get.find<AuthService>().currentUserRole.value;
                 if (role == AppStrings.roleSuperAdmin || role == AppStrings.roleOwner) {
@@ -181,13 +218,13 @@ class SettingsView extends GetView<SettingsController> {
           ),
           const SizedBox(height: 20),
           const Divider(),
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
           Row(
             children: [
-              const Icon(Icons.qr_code_2_rounded, color: AppColors.primary, size: 20),
+              const Icon(Icons.store_rounded, color: AppColors.primary, size: 20),
               const SizedBox(width: 8),
               Text(
-                'Mobile Payment QR Code (কিউআর পেমেন্ট সেটিংস)',
+                'Shop Details & Location (দোকানের তথ্য ও ঠিকানা)',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
@@ -197,60 +234,41 @@ class SettingsView extends GetView<SettingsController> {
             ],
           ),
           const SizedBox(height: 12),
-          Obx(() => SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text(
-                  'Display QR Payment on POS Receipt (স্লিপে পেমেন্ট কিউআর কোড দেখান)',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                ),
-                value: controller.showQrPayment.value,
-                onChanged: (val) => controller.showQrPayment.value = val,
-                activeThumbColor: AppColors.secondary,
-              )),
-          Obx(() {
-            if (!controller.showQrPayment.value) return const SizedBox.shrink();
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: controller.qrGatewayController,
-                        decoration: const InputDecoration(
-                          labelText: 'Gateway Name (পেমেন্ট গেটওয়ে)',
-                          hintText: 'e.g. bKash Merchant, Nagad Personal',
-                          prefixIcon: Icon(Icons.payment_rounded),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: TextField(
-                        controller: controller.qrNumberController,
-                        keyboardType: TextInputType.phone,
-                        decoration: const InputDecoration(
-                          labelText: 'Account Number (মোবাইল নম্বর)',
-                          hintText: 'e.g. +8801700000000',
-                          prefixIcon: Icon(Icons.phone_android_rounded),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: controller.qrImageUrlController,
+          TextField(
+            controller: controller.shopAddressController,
+            maxLines: 2,
+            decoration: const InputDecoration(
+              labelText: 'Address (ঠিকানা)',
+              hintText: 'দোকানের পুরো ঠিকানা লিখুন',
+              prefixIcon: Icon(Icons.location_on_rounded),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: controller.shopPhoneController,
+                  keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
-                    labelText: 'Custom QR Code Image URL (ঐচ্ছিক ছবির লিংক)',
-                    hintText: 'e.g. https://example.com/my-qr.png',
-                    prefixIcon: Icon(Icons.link_rounded),
+                    labelText: 'Phone (মোবাইল)',
+                    prefixIcon: Icon(Icons.phone_rounded),
                   ),
                 ),
-              ],
-            );
-          }),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: TextField(
+                  controller: controller.shopEmailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Email (ইমেইল)',
+                    prefixIcon: Icon(Icons.email_rounded),
+                  ),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 24),
           CustomButton(
             text: 'Save Settings (সেটিংস সংরক্ষণ করুন)',
@@ -513,6 +531,111 @@ class SettingsView extends GetView<SettingsController> {
     );
   }
 
+  Widget _buildStaffManagementCard(BuildContext context, bool isDark) {
+    return GlassCard(
+      padding: const EdgeInsets.all(20),
+      borderRadius: 24,
+      color: isDark ? const Color(0xFF151D30) : Colors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Obx(() => Row(
+                children: [
+                  Expanded(
+                    child: ChoiceChip(
+                      label: const Center(child: Text('WAITERS (ওয়েটার)')),
+                      selected: controller.isAddingWaiter.value,
+                      onSelected: (val) => controller.isAddingWaiter.value = true,
+                      selectedColor: AppColors.primary,
+                      labelStyle: TextStyle(
+                        color: controller.isAddingWaiter.value ? Colors.white : Colors.grey.shade600,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ChoiceChip(
+                      label: const Center(child: Text('CHEFS (বাবুর্চি)')),
+                      selected: !controller.isAddingWaiter.value,
+                      onSelected: (val) => controller.isAddingWaiter.value = false,
+                      selectedColor: AppColors.primary,
+                      labelStyle: TextStyle(
+                        color: !controller.isAddingWaiter.value ? Colors.white : Colors.grey.shade600,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ],
+              )),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: controller.staffNameController,
+                  decoration: InputDecoration(
+                    labelText: 'Full Name (নাম লিখুন)',
+                    hintText: 'e.g. Rahim Ahmed',
+                    prefixIcon: const Icon(Icons.person_add_alt_1_rounded),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () => controller.addStaff(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Icon(Icons.add),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const Divider(),
+          const SizedBox(height: 16),
+          const Text(
+            'STAFF LIST (বর্তমান স্টাফ তালিকা):',
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey),
+          ),
+          const SizedBox(height: 12),
+          Obx(() {
+            final list = controller.isAddingWaiter.value ? controller.dbService.waiters : controller.dbService.chefs;
+            if (list.isEmpty) {
+              return const Center(
+                  child: Text('No staff found.', style: TextStyle(fontSize: 11, color: Colors.grey)));
+            }
+            return Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: list.map((name) {
+                return Chip(
+                  label: Text(name, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                  deleteIcon: const Icon(Icons.cancel_rounded, size: 16),
+                  onDeleted: () {
+                    if (controller.isAddingWaiter.value) {
+                      controller.removeWaiter(name);
+                    } else {
+                      controller.removeChef(name);
+                    }
+                  },
+                );
+              }).toList(),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
   Widget _buildOwnerExecutiveHub(BuildContext context, bool isDark) {
     final theme = Theme.of(context);
     final isMobile = context.width < 700;
@@ -655,29 +778,13 @@ class SettingsView extends GetView<SettingsController> {
           ),
           const SizedBox(height: 12),
           
-          // QR Toggle
-          Obx(() => SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Receipt QR Code Payment', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-            subtitle: const Text('Toggle payment instructions on invoice', style: TextStyle(fontSize: 10, color: Colors.grey)),
-            value: controller.showQrPayment.value,
-            onChanged: (val) {
-              controller.showQrPayment.value = val;
-              // Save to DB
-              controller.dbService.showQrPayment.value = val;
-              // Save to persistence
-              GetStorage().write('showQrPayment', val);
-              Get.snackbar(
-                'Visibility Updated', 
-                'QR visibility inside receipt updated successfully!',
-                snackPosition: SnackPosition.BOTTOM,
-                backgroundColor: AppColors.secondary.withValues(alpha: 0.1),
-                colorText: AppColors.secondary,
-              );
-            },
-            activeThumbColor: AppColors.secondary,
-          )),
+          // Data controls
+          const Text(
+            'Use these controls to manage your system data and reporting.',
+            style: TextStyle(fontSize: 10, color: Colors.grey),
+          ),
           
+          const SizedBox(height: 12),
           const Divider(),
           const SizedBox(height: 8),
           

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
 
@@ -10,6 +11,7 @@ class GlassCard extends StatelessWidget {
   final Gradient? gradient;
   final List<BoxShadow>? customShadows;
   final double borderRadius;
+  final double blur;
 
   const GlassCard({
     super.key,
@@ -21,6 +23,7 @@ class GlassCard extends StatelessWidget {
     this.gradient,
     this.customShadows,
     this.borderRadius = 16.0,
+    this.blur = 10.0,
   });
 
   @override
@@ -55,21 +58,29 @@ class GlassCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: color ?? (isDark 
-            ? const Color(0xFF151D30).withValues(alpha: 0.85) 
-            : Colors.white.withValues(alpha: 0.9)),
-        gradient: gradient,
         borderRadius: BorderRadius.circular(borderRadius),
-        border: border != null 
-            ? Border.fromBorderSide(border!) 
-            : Border.all(color: defaultBorderColor, width: 1.2),
         boxShadow: customShadows ?? defaultShadows,
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
-        child: Padding(
-          padding: padding ?? const EdgeInsets.all(16),
-          child: child,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+          child: Container(
+            decoration: BoxDecoration(
+              color: color ?? (isDark 
+                  ? const Color(0xFF151D30).withValues(alpha: 0.85) 
+                  : Colors.white.withValues(alpha: 0.9)),
+              gradient: gradient,
+              borderRadius: BorderRadius.circular(borderRadius),
+              border: border != null 
+                  ? Border.fromBorderSide(border!) 
+                  : Border.all(color: defaultBorderColor, width: 1.2),
+            ),
+            child: Padding(
+              padding: padding ?? const EdgeInsets.all(16),
+              child: child,
+            ),
+          ),
         ),
       ),
     );

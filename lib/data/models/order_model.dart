@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'product_model.dart';
 
 enum OrderType {
@@ -65,6 +66,60 @@ class OrderModel {
   
   double get totalAmount {
     return subTotal - discount + serviceCharge;
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'orderNumber': orderNumber,
+      'tableName': tableName,
+      'waiterName': waiterName,
+      'chefName': chefName,
+      'items': items.map((x) => {
+        'product': x.product.toMap(),
+        'quantity': x.quantity,
+      }).toList(),
+      'orderType': orderType.toString().split('.').last,
+      'paymentMethod': paymentMethod.toString().split('.').last,
+      'orderStatus': orderStatus.toString().split('.').last,
+      'time': time.millisecondsSinceEpoch,
+      'discount': discount,
+      'serviceCharge': serviceCharge,
+    };
+  }
+
+  factory OrderModel.fromMap(Map<String, dynamic> map) {
+    return OrderModel(
+      id: map['id'] ?? '',
+      orderNumber: map['orderNumber'] ?? '',
+      tableName: map['tableName'],
+      waiterName: map['waiterName'],
+      chefName: map['chefName'],
+      items: (map['items'] as List?)?.map((x) {
+        final productMap = Map<String, dynamic>.from(x['product']);
+        // Product in order items needs its ID for references
+        return OrderItem(
+          product: ProductModel.fromMap(productMap),
+          quantity: x['quantity'] ?? 1,
+        );
+      }).toList() ?? [],
+      orderType: OrderType.values.firstWhere(
+        (e) => e.toString().split('.').last == map['orderType'],
+        orElse: () => OrderType.dineIn,
+      ),
+      paymentMethod: PaymentMethod.values.firstWhere(
+        (e) => e.toString().split('.').last == map['paymentMethod'],
+        orElse: () => PaymentMethod.cash,
+      ),
+      orderStatus: OrderStatus.values.firstWhere(
+        (e) => e.toString().split('.').last == map['orderStatus'],
+        orElse: () => OrderStatus.pending,
+      ),
+      time: map['time'] is Timestamp 
+          ? (map['time'] as Timestamp).toDate() 
+          : DateTime.fromMillisecondsSinceEpoch(map['time'] ?? 0),
+      discount: (map['discount'] ?? 0).toDouble(),
+      serviceCharge: (map['serviceCharge'] ?? 0).toDouble(),
+    );
   }
 
   OrderModel copyWith({

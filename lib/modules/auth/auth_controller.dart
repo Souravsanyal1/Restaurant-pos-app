@@ -10,6 +10,7 @@ class AuthController extends GetxController {
   
   final selectedRole = AppStrings.roleCashier.obs;
   final isLoading = false.obs;
+  final isPasswordVisible = false.obs;
 
   final authService = Get.find<AuthService>();
 
@@ -29,7 +30,7 @@ class AuthController extends GetxController {
     super.onClose();
   }
 
-  void login() {
+  void login() async {
     if (emailController.text.trim().isEmpty) {
       Get.snackbar('Error', 'Please enter email address',
           snackPosition: SnackPosition.BOTTOM,
@@ -47,10 +48,8 @@ class AuthController extends GetxController {
 
     isLoading.value = true;
     
-    // Simulate API delay
-    Future.delayed(const Duration(milliseconds: 1000), () {
-      isLoading.value = false;
-      final success = authService.login(
+    try {
+      final success = await authService.login(
         emailController.text.trim(),
         passwordController.text.trim(),
         selectedRole.value,
@@ -58,12 +57,15 @@ class AuthController extends GetxController {
 
       if (success) {
         Get.offAllNamed(AppRoutes.dashboard);
-      } else {
-        Get.snackbar('Error', 'Login failed. Please check credentials.',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.red.withValues(alpha: 0.1),
-            colorText: Colors.red);
       }
-    });
+    } catch (e) {
+      Get.snackbar('Login Failed', e.toString(),
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withValues(alpha: 0.1),
+          colorText: Colors.red,
+          duration: const Duration(seconds: 4));
+    } finally {
+      isLoading.value = false;
+    }
   }
 }

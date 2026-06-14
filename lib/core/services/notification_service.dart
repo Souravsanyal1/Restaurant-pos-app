@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:local_notifier/local_notifier.dart';
 import '../constants/app_colors.dart';
 
 // Conditional import for HTML5 Web Notifications
@@ -11,11 +13,13 @@ import '../utils/notification_helper_stub.dart'
 class NotificationService extends GetxService {
   final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
+  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
 
   @override
   void onInit() {
     super.onInit();
     _initNotifications();
+    _initFcm();
   }
 
   Future<void> _initNotifications() async {
@@ -23,7 +27,14 @@ class NotificationService extends GetxService {
     if (kIsWeb) {
       await helper.NotificationHelper.requestPermission();
     } 
-    // 2. Mobile Native permissions and setup
+    // 2. Windows setup
+    else if (GetPlatform.isWindows) {
+      await localNotifier.setup(
+        appName: 'TastePoint POS',
+        shortcutPolicy: ShortcutPolicy.requireCreate,
+      );
+    }
+    // 3. Mobile Native permissions and setup
     else if (GetPlatform.isAndroid || GetPlatform.isIOS) {
       const AndroidInitializationSettings initializationSettingsAndroid =
           AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -52,6 +63,44 @@ class NotificationService extends GetxService {
     }
   }
 
+  Future<void> _initFcm() async {
+    // Request permission for push notifications
+    NotificationSettings settings = await _fcm.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      print('User granted FCM permission');
+      
+      // Get the token (can be sent to server to target this device)
+      if (!kIsWeb) {
+        String? token = await _fcm.getToken();
+        print("FCM Token: $token");
+      }
+
+      // Handle background messages
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+      // Handle foreground messages
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        print('Got a message whilst in the foreground!');
+        if (message.notification != null) {
+          showNotification(
+            message.notification!.title ?? 'New Alert',
+            message.notification!.body ?? '',
+          );
+        }
+      });
+    }
+  }
+
+  // Mandatory static handler for background messages
+  static Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+    print("Handling a background message: ${message.messageId}");
+  }
+
   Future<void> requestWebPermission() async {
     if (kIsWeb) {
       await helper.NotificationHelper.requestPermission();
@@ -63,14 +112,26 @@ class NotificationService extends GetxService {
     if (kIsWeb) {
       helper.NotificationHelper.showNotification(title, body);
     } 
+    // Trigger Windows local notification
+    else if (GetPlatform.isWindows) {
+      _showWindowsNotification(title, body);
+    }
     // Trigger native mobile notifications
     else if (GetPlatform.isAndroid || GetPlatform.isIOS) {
       _showNativeMobileNotification(title, body);
     }
 
     // Always show a beautiful, premium, in-app notification card (heads-up banner)
-    // so that it looks incredibly alive and interactive!
     _showInAppNotification(title, body);
+  }
+
+  void _showWindowsNotification(String title, String body) {
+    LocalNotification notification = LocalNotification(
+      title: title,
+      body: body,
+      silent: false,
+    );
+    notification.show();
   }
 
   Future<void> _showNativeMobileNotification(String title, String body) async {

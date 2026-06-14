@@ -37,4 +37,24 @@ class CouponModel {
       isActive: isActive ?? this.isActive,
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'code': code,
+      'isPercentage': isPercentage,
+      'value': value,
+      'minOrderAmount': minOrderAmount,
+      'isActive': isActive,
+    };
+  }
+
+  factory CouponModel.fromMap(Map<String, dynamic> map) {
+    return CouponModel(
+      code: map['code'] ?? '',
+      isPercentage: map['isPercentage'] ?? true,
+      value: (map['value'] ?? 0).toDouble(),
+      minOrderAmount: (map['minOrderAmount'] ?? 0).toDouble(),
+      isActive: map['isActive'] ?? true,
+    );
+  }
 }

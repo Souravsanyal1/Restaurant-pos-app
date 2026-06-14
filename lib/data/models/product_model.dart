@@ -46,4 +46,31 @@ class ProductModel {
       imageUrl: imageUrl ?? this.imageUrl,
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'name': name,
+      'price': price,
+      'discount': discount,
+      'vat': vat,
+      'sku': sku,
+      'category': category,
+      'stock': stock,
+      'imageUrl': imageUrl,
+    };
+  }
+
+  factory ProductModel.fromMap(Map<String, dynamic> map) {
+    return ProductModel(
+      id: map['id'] ?? '',
+      name: map['name'] ?? '',
+      price: double.tryParse(map['price']?.toString() ?? '0') ?? 0.0,
+      discount: double.tryParse(map['discount']?.toString() ?? '0') ?? 0.0,
+      vat: double.tryParse(map['vat']?.toString() ?? '0') ?? 0.0,
+      sku: map['sku']?.toString() ?? '',
+      category: map['category']?.toString() ?? '',
+      stock: int.tryParse(map['stock']?.toString() ?? '0') ?? 0,
+      imageUrl: map['imageUrl']?.toString() ?? '',
+    );
+  }
 }

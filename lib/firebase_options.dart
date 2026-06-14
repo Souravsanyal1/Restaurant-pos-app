@@ -54,9 +54,10 @@ class DefaultFirebaseOptions {
     appId: '1:100923170468:web:4525fefc7dd528b1895031',
     messagingSenderId: '100923170468',
     projectId: 'sorkar-agro',
-    authDomain: 'sorkar-agro-48c87.firebaseapp.com',
+    authDomain: 'sorkar-agro.firebaseapp.com',
     databaseURL: 'https://sorkar-agro-default-rtdb.firebaseio.com',
     storageBucket: 'sorkar-agro.firebasestorage.app',
+    measurementId: 'G-7L9XLY9LY9', // Added common missing field
   );
 
   static const FirebaseOptions android = FirebaseOptions(

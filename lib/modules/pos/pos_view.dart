@@ -1,5 +1,6 @@
 // ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
 import 'dart:async';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -1428,51 +1429,36 @@ class PosView extends GetView<PosController> {
   }
 
   Widget _buildPaymentQRSection(bool isDark) {
-    return Obx(() {
-      if (!controller.dbService.showQrPayment.value) {
-        return const SizedBox.shrink();
-      }
-
-      final gateway = controller.dbService.qrPaymentGateway.value;
-      final number = controller.dbService.qrPaymentNumber.value;
-      final imageUrl = controller.dbService.qrImageUrl.value;
-
-      return Center(
-        child: Column(
-          children: [
-            Text(
-              'SCAN FOR MOBILE BILL PAYMENT (${gateway.toUpperCase()})',
-              style: TextStyle(
-                fontSize: 8,
-                fontWeight: FontWeight.w900,
-                color: Colors.grey.shade500,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(height: 8),
-            _buildQRImageOrMock(imageUrl),
-            const SizedBox(height: 6),
-            Text(
-              '$gateway: $number',
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white70 : Colors.grey.shade700,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              'TastePoint Pay Terminal #01',
-              style: TextStyle(
-                fontSize: 8,
-                fontStyle: FontStyle.italic,
-                color: Colors.grey.shade500,
-              ),
-            ),
-          ],
-        ),
-      );
-    });
+    return Center(
+      child: Column(
+        children: [
+          Icon(
+            Icons.location_on_rounded,
+            size: 16,
+            color: AppColors.primary.withValues(alpha: 0.7),
+          ),
+          const SizedBox(height: 4),
+          Obx(() => Text(
+                controller.dbService.shopAddress.value,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white54 : Colors.black54,
+                ),
+              )),
+          const SizedBox(height: 2),
+          Obx(() => Text(
+                'Phone: ${controller.dbService.shopPhone.value}',
+                style: TextStyle(
+                  fontSize: 8,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white38 : Colors.black45,
+                ),
+              )),
+        ],
+      ),
+    );
   }
 
   Widget _buildQRImageOrMock(String imageUrl) {
@@ -2128,43 +2114,7 @@ class PosView extends GetView<PosController> {
                                 ),
                               ),
 
-                              // QR Code Payment (if enabled)
-                              if (controller.dbService.showQrPayment.value) ...[
-                                Center(
-                                  child: Column(
-                                    children: [
-                                      Text(
-                                        'SCAN TO PAY: ${controller.dbService.qrPaymentGateway.value.toUpperCase()}',
-                                        style: const TextStyle(
-                                          fontSize: 7,
-                                          fontWeight: FontWeight.bold,
-                                          fontFamily: 'monospace',
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      _buildQRImageOrMock(
-                                        controller.dbService.qrImageUrl.value,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'NO: ${controller.dbService.qrPaymentNumber.value}',
-                                        style: const TextStyle(
-                                          fontSize: 8,
-                                          fontWeight: FontWeight.bold,
-                                          fontFamily: 'monospace',
-                                        ),
-                                      ),
-                                      const Text(
-                                        '----------------------------------',
-                                        style: TextStyle(
-                                          fontSize: 8,
-                                          fontFamily: 'monospace',
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
+                              // QR Code Payment removed as per request
 
                               // Barcode & Footer
                               Center(
@@ -2379,10 +2329,10 @@ class PosView extends GetView<PosController> {
     final restaurantName = controller.dbService.restaurantName.value
         .toUpperCase();
     final dateStr = DateFormat("dd-MM-yyyy hh:mm a").format(order.time);
-    final orderTypeStr = order.orderType == OrderType.dineIn
-        ? "Dine-In (${order.tableName})"
-        : "Takeaway";
-    final waiterNameStr = order.waiterName ?? "None";
+    final orderNumStr = order.orderNumber;
+    final orderTypeStr = order.orderType == OrderType.dineIn ? "DINE-IN" : "TAKEAWAY";
+    final tableInfoStr = order.orderType == OrderType.dineIn ? " (${order.tableName})" : "";
+    final waiterNameStr = order.waiterName ?? "NONE";
     final paymentMethodStr = order.paymentMethod
         .toString()
         .split('.')
@@ -2411,43 +2361,9 @@ class PosView extends GetView<PosController> {
         ? '<div class="flex-row"><span>SERVICE CHARGE</span><span>৳${order.serviceCharge.toStringAsFixed(0)}</span></div>'
         : '';
 
-    String qrPaymentHtml = '';
-    if (controller.dbService.showQrPayment.value) {
-      final gateway = controller.dbService.qrPaymentGateway.value.toUpperCase();
-      final number = controller.dbService.qrPaymentNumber.value;
-      final imageUrl = controller.dbService.qrImageUrl.value.trim();
-
-      String qrMediaHtml = '';
-      if (imageUrl.isNotEmpty &&
-          (imageUrl.startsWith('http') || imageUrl.startsWith('assets/'))) {
-        qrMediaHtml =
-            '<img src="$imageUrl" class="qr-image" onerror="this.style.display=\'none\';" />';
-      } else {
-        qrMediaHtml = '''
-        <div style="display: inline-block; padding: 5px; background: white; border: 1px solid #ccc; margin: 5px 0;">
-          <div style="display: grid; grid-template-columns: repeat(7, 10px); grid-template-rows: repeat(7, 10px); gap: 2px;">
-            <div style="background: black;"></div><div style="background: black;"></div><div style="background: black;"></div><div style="background: white;"></div><div style="background: black;"></div><div style="background: black;"></div><div style="background: black;"></div>
-            <div style="background: black;"></div><div style="background: white;"></div><div style="background: black;"></div><div style="background: white;"></div><div style="background: white;"></div><div style="background: white;"></div><div style="background: black;"></div>
-            <div style="background: black;"></div><div style="background: black;"></div><div style="background: black;"></div><div style="background: white;"></div><div style="background: black;"></div><div style="background: white;"></div><div style="background: black;"></div>
-            <div style="background: white;"></div><div style="background: white;"></div><div style="background: white;"></div><div style="background: black;"></div><div style="background: white;"></div><div style="background: white;"></div><div style="background: white;"></div>
-            <div style="background: black;"></div><div style="background: white;"></div><div style="background: black;"></div><div style="background: white;"></div><div style="background: black;"></div><div style="background: black;"></div><div style="background: black;"></div>
-            <div style="background: black;"></div><div style="background: white;"></div><div style="background: white;"></div><div style="background: white;"></div><div style="background: white;"></div><div style="background: white;"></div><div style="background: black;"></div>
-            <div style="background: black;"></div><div style="background: black;"></div><div style="background: black;"></div><div style="background: white;"></div><div style="background: black;"></div><div style="background: black;"></div><div style="background: black;"></div>
-          </div>
-        </div>
-        ''';
-      }
-
-      qrPaymentHtml =
-          '''
-      <div class="qr-container">
-        <div class="bold" style="font-size: 9px;">SCAN TO PAY: $gateway</div>
-        $qrMediaHtml
-        <div class="bold" style="font-size: 10px;">NO: $number</div>
-      </div>
-      <div class="divider"></div>
-      ''';
-    }
+    // Shop Details Section
+    final address = controller.dbService.shopAddress.value;
+    final phone = controller.dbService.shopPhone.value;
 
     final htmlContent =
         '''
@@ -2485,14 +2401,10 @@ class PosView extends GetView<PosController> {
     .item-row {
       margin: 3px 0;
     }
-    .qr-container {
+    .shop-details {
       margin-top: 8px;
       text-align: center;
-    }
-    .qr-image {
-      width: 100px;
-      height: 100px;
-      object-fit: contain;
+      font-size: 10px;
     }
     @media print {
       body {
@@ -2506,12 +2418,13 @@ class PosView extends GetView<PosController> {
 </head>
 <body>
   <div class="center bold" style="font-size: 13px; margin-bottom: 2px;">$restaurantName</div>
-  <div class="center" style="font-size: 9px; margin-bottom: 4px;">Dhaka, Bangladesh</div>
+  <div class="center" style="font-size: 10px; margin-bottom: 4px;">$address</div>
+  <div class="center" style="font-size: 10px; margin-bottom: 4px;">Phone: $phone</div>
   <div class="divider"></div>
   
-  <div class="flex-row"><span class="bold">ORDER #:</span><span>ORD-$orderTypeStr</span></div>
+  <div class="flex-row"><span class="bold">ORDER #:</span><span>#$orderNumStr</span></div>
   <div class="flex-row"><span>DATE:</span><span>$dateStr</span></div>
-  <div class="flex-row"><span>TYPE:</span><span>$orderTypeStr</span></div>
+  <div class="flex-row"><span>TYPE:</span><span>$orderTypeStr$tableInfoStr</span></div>
   <div class="flex-row"><span>WAITER:</span><span>$waiterNameStr</span></div>
   <div class="flex-row"><span>PAYMENT:</span><span>$paymentMethodStr</span></div>
   <div class="divider"></div>
@@ -2531,8 +2444,6 @@ class PosView extends GetView<PosController> {
   <div class="divider"></div>
   <div class="flex-row bold" style="font-size: 12px;"><span>TOTAL PAYABLE</span><span>৳$totalStr</span></div>
   <div class="divider"></div>
-  
-  $qrPaymentHtml
   
   <div class="center bold" style="margin-top: 8px; font-size: 9px;">THANK YOU! PLEASE COME AGAIN</div>
   <div class="center" style="font-size: 8px; font-style: italic; margin-top: 2px;">TastePoint POS System</div>
